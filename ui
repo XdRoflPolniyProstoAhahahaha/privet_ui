@@ -1,713 +1,737 @@
+local ui   = {}
+ui.__index = ui
 
-local CheatLib = {}
-CheatLib.__index = CheatLib
-
-local Players           = game:GetService("Players")
-local TweenService      = game:GetService("TweenService")
-local UserInputService  = game:GetService("UserInputService")
-local RunService        = game:GetService("RunService")
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService       = game:GetService("RunService")
 
 local LP    = Players.LocalPlayer
 local Mouse = LP:GetMouse()
 
--- ─── Цвета (стиль со скрина) ──────────────────────────────────
 local C = {
-	BG          = Color3.fromRGB(30, 30, 30),       -- основной фон
-	Panel       = Color3.fromRGB(38, 38, 38),       -- панели
-	Sidebar     = Color3.fromRGB(22, 22, 22),       -- боковая панель
-	Header      = Color3.fromRGB(220, 0, 140),      -- заголовок (маджента)
-	Accent      = Color3.fromRGB(220, 0, 140),      -- розовый акцент
-	AccentDim   = Color3.fromRGB(160, 0, 100),      -- тёмнее розовый
-	AccentFill  = Color3.fromRGB(220, 0, 140),      -- заливка слайдера
-	TrackBG     = Color3.fromRGB(55, 55, 55),       -- фон слайдера
-	Text        = Color3.fromRGB(210, 210, 210),    -- основной текст
-	TextDim     = Color3.fromRGB(130, 130, 130),    -- тусклый текст
-	TabActive   = Color3.fromRGB(220, 0, 140),      -- активная вкладка
-	TabInactive = Color3.fromRGB(22, 22, 22),       -- неактивная вкладка
-	TabText     = Color3.fromRGB(180, 180, 180),
-	Border      = Color3.fromRGB(60, 60, 60),
-	Toggle_On   = Color3.fromRGB(220, 0, 140),
-	Toggle_Off  = Color3.fromRGB(80, 80, 80),
-	Dropdown    = Color3.fromRGB(45, 45, 45),
+	Win         = Color3.fromRGB(25,  25,  25),   -- фон окна
+	Header      = Color3.fromRGB(30,  30,  30),   -- шапка
+	TabBar      = Color3.fromRGB(20,  20,  20),   -- таббар
+	TabActive   = Color3.fromRGB(28,  28,  28),   -- активная вкладка
+	TabInactive = Color3.fromRGB(20,  20,  20),   -- неактивная
+	Col         = Color3.fromRGB(25,  25,  25),   -- колонки
+	Border      = Color3.fromRGB(50,  50,  50),
+	BorderHi    = Color3.fromRGB(70,  70,  70),
+	Text        = Color3.fromRGB(190, 190, 190),  -- основной текст
+	TextDim     = Color3.fromRGB(100, 100, 100),  -- тусклый
+	TextBright  = Color3.fromRGB(220, 220, 220),
+	Section     = Color3.fromRGB(120, 120, 120),  -- заголовки секций
+	Bind        = Color3.fromRGB(110, 110, 110),  -- [M], [ALT]
+	CheckOff    = Color3.fromRGB(40,  40,  40),
+	CheckBorder = Color3.fromRGB(90,  90,  90),
+	DropBG      = Color3.fromRGB(32,  32,  32),
+	DropBorder  = Color3.fromRGB(60,  60,  60),
+	SliderBG    = Color3.fromRGB(50,  50,  50),
+	SliderFill  = Color3.fromRGB(160, 160, 160),
+	SliderVal   = Color3.fromRGB(150, 150, 150),  -- значение слева
+	TabLine     = Color3.fromRGB(160, 160, 160),  -- линия активной вкладки
 }
 
--- ─── Утилиты ──────────────────────────────────────────────────
-local function tw(obj, props, t)
-	TweenService:Create(obj, TweenInfo.new(t or 0.1, Enum.EasingStyle.Quad), props):Play()
+local function tw(o, p, t)
+	TweenService:Create(o, TweenInfo.new(t or 0.07, Enum.EasingStyle.Quad), p):Play()
 end
 
-local function Frame(parent, size, pos, color, name)
+local function F(parent, sz, pos, col, name)
 	local f = Instance.new("Frame")
-	f.Size, f.Position = size, pos
-	f.BackgroundColor3 = color or C.Panel
+	f.Size, f.Position = sz, pos
+	f.BackgroundColor3 = col or C.Win
 	f.BorderSizePixel  = 0
-	f.Name = name or "Frame"
-	f.Parent = parent
+	f.Name             = name or "F"
+	f.Parent           = parent
 	return f
 end
 
-local function Label(parent, text, size, pos, color, fs, name)
+local function L(parent, txt, sz, pos, col, fs, name)
 	local l = Instance.new("TextLabel")
-	l.Size, l.Position = size, pos
+	l.Size, l.Position   = sz, pos
 	l.BackgroundTransparency = 1
-	l.Text = text
-	l.TextColor3 = color or C.Text
-	l.TextSize   = fs or 12
-	l.Font = Enum.Font.Code   -- моноширинный как на скрине
-	l.TextXAlignment = Enum.TextXAlignment.Left
-	l.Name = name or "Lbl"
-	l.Parent = parent
+	l.Text               = txt
+	l.TextColor3         = col or C.Text
+	l.TextSize           = fs or 11
+	l.Font               = Enum.Font.Code
+	l.TextXAlignment     = Enum.TextXAlignment.Left
+	l.TextYAlignment     = Enum.TextYAlignment.Center
+	l.Name               = name or "L"
+	l.Parent             = parent
 	return l
 end
 
-local function Btn(parent, size, pos, color, name)
+local function B(parent, sz, pos, name)
 	local b = Instance.new("TextButton")
-	b.Size, b.Position = size, pos
-	b.BackgroundColor3 = color or C.Panel
-	b.BorderSizePixel  = 0
-	b.Text = ""
-	b.AutoButtonColor = false
-	b.Name = name or "Btn"
-	b.Parent = parent
+	b.Size, b.Position   = sz, pos
+	b.BackgroundTransparency = 1
+	b.BorderSizePixel    = 0
+	b.Text               = ""
+	b.AutoButtonColor    = false
+	b.Name               = name or "B"
+	b.Parent             = parent
 	return b
 end
 
-local function Corner(p, r)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, r or 3)
-	c.Parent = p
-	return c
-end
-
-local function Stroke(p, color, t)
+local function Stroke(p, col, t)
 	local s = Instance.new("UIStroke")
-	s.Color = color or C.Border
-	s.Thickness = t or 1
+	s.Color, s.Thickness = col or C.Border, t or 1
 	s.Parent = p
 	return s
 end
 
--- ─── Notify ───────────────────────────────────────────────────
-local _notifGui
-local function getNotifGui()
-	if _notifGui and _notifGui.Parent then return _notifGui end
+local _nh
+local function notifHolder()
+	if _nh and _nh.Parent then return _nh end
 	local sg = Instance.new("ScreenGui")
-	sg.Name = "CLMNotifs"
-	sg.ResetOnSpawn  = false
-	sg.DisplayOrder  = 999
-	sg.Parent        = (gethui and gethui()) or LP:WaitForChild("PlayerGui")
-	local holder = Frame(sg, UDim2.new(0,260,1,0), UDim2.new(1,-270,0,0), Color3.fromRGB(0,0,0))
-	holder.BackgroundTransparency = 1
-	local ul = Instance.new("UIListLayout")
+	sg.Name, sg.ResetOnSpawn, sg.DisplayOrder, sg.IgnoreGuiInset = "BRN", false, 999, true
+	sg.Parent = (gethui and gethui()) or LP:WaitForChild("PlayerGui")
+	local h = F(sg, UDim2.new(0,240,1,0), UDim2.new(1,-248,0,0), Color3.new())
+	h.BackgroundTransparency = 1
+	local ul = Instance.new("UIListLayout", h)
 	ul.VerticalAlignment = Enum.VerticalAlignment.Bottom
-	ul.SortOrder = Enum.SortOrder.LayoutOrder
-	ul.Padding  = UDim.new(0,6)
-	ul.Parent   = holder
-	_notifGui = holder
-	return holder
+	ul.SortOrder         = Enum.SortOrder.LayoutOrder
+	ul.Padding           = UDim.new(0,3)
+	_nh = h
+	return h
 end
 
-function CheatLib:Notify(title, text, dur)
-	local holder = getNotifGui()
+function ui:Notify(title, text, dur)
 	dur = dur or 3
-
-	local card = Frame(holder, UDim2.new(1,0,0,56), UDim2.new(0,0,0,0), C.BG)
-	Corner(card, 3)
-	Stroke(card, C.Accent)
-	-- розовая полоска слева
-	local bar = Frame(card, UDim2.new(0,3,1,-8), UDim2.new(0,0,0,4), C.Accent)
-	Corner(bar, 2)
-
-	Label(card, title, UDim2.new(1,-14,0,16), UDim2.new(0,10,0,6),  C.Accent, 12)
-	Label(card, text,  UDim2.new(1,-14,0,14), UDim2.new(0,10,0,26), C.TextDim, 11)
-
-	card.Position = UDim2.new(1,10,0,0)
-	tw(card, {Position = UDim2.new(0,0,0,0)}, 0.25)
+	local h = notifHolder()
+	local card = F(h, UDim2.new(1,0,0,46), UDim2.new(0,0,0,0), C.Header)
+	Stroke(card, C.Border)
+	F(card, UDim2.new(0,2,1,0), UDim2.new(0,0,0,0), C.SliderFill)
+	L(card, title, UDim2.new(1,-14,0,14), UDim2.new(0,9,0,5),  C.TextBright, 10)
+	L(card, text,  UDim2.new(1,-14,0,13), UDim2.new(0,9,0,24), C.TextDim,    10)
+	card.Position = UDim2.new(1,6,0,0)
+	tw(card, {Position=UDim2.new(0,0,0,0)}, 0.2)
 	task.delay(dur, function()
-		tw(card, {Position = UDim2.new(1,10,0,0)}, 0.2)
-		task.wait(0.25)
-		card:Destroy()
+		tw(card, {Position=UDim2.new(1,6,0,0)}, 0.16)
+		task.wait(0.2); card:Destroy()
 	end)
 end
 
--- ─── CreateWindow ─────────────────────────────────────────────
-function CheatLib:CreateWindow(title, options)
-	options = options or {}
-	local toggleKey = options.Key or Enum.KeyCode.RightShift
+function ui:CreateWindow(title, opts)
+	opts     = opts or {}
+	local KEY = opts.Key or Enum.KeyCode.Insert
+
+	local W, H      = 460, 430
+	local HEADER_H  = 24
+	local TABBAR_H  = 28
 
 	local gui = Instance.new("ScreenGui")
-	gui.Name = "CLM_" .. title
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 100
+	gui.Name, gui.ResetOnSpawn, gui.DisplayOrder, gui.IgnoreGuiInset = "BRGui", false, 100, true
 	gui.Parent = (gethui and gethui()) or LP:WaitForChild("PlayerGui")
 
-	-- Главное окно (480×360, как на скрине)
-	local win = Frame(gui, UDim2.new(0,520,0,370), UDim2.new(0.5,-260,0.5,-185), C.BG, "Window")
-	Corner(win, 3)
+	local win = F(gui, UDim2.new(0,W,0,H), UDim2.new(0.5,-W/2,0.5,-H/2), C.Win, "Win")
 	Stroke(win, C.Border)
 
-	-- ── Drag ──
-	local drag, dragStart, startPos
+	local drag, ds, dp
 	win.InputBegan:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 then
-			drag = true; dragStart = i.Position; startPos = win.Position
+			drag=true; ds=i.Position; dp=win.Position
 		end
 	end)
 	UserInputService.InputChanged:Connect(function(i)
 		if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
-			local d = i.Position - dragStart
-			win.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X,
-				startPos.Y.Scale, startPos.Y.Offset+d.Y)
+			local d = i.Position-ds
+			win.Position = UDim2.new(dp.X.Scale, dp.X.Offset+d.X, dp.Y.Scale, dp.Y.Offset+d.Y)
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
+		if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end
 	end)
 
-	-- ── Заголовок (розовая полоска как на скрине) ──
-	local header = Frame(win, UDim2.new(1,0,0,24), UDim2.new(0,0,0,0), C.Header, "Header")
-	Corner(header, 3)
-	-- Убираем нижние скруглённые углы у header
-	Frame(header, UDim2.new(1,0,0,8), UDim2.new(0,0,1,-8), C.Header)
+	local hdr = F(win, UDim2.new(1,0,0,HEADER_H), UDim2.new(0,0,0,0), C.Header, "Hdr")
+	local titleL = L(hdr, title, UDim2.new(1,-20,1,0), UDim2.new(0,0,0,0), C.Section, 13)
+	titleL.TextXAlignment = Enum.TextXAlignment.Center
+	F(win, UDim2.new(1,0,0,1), UDim2.new(0,0,0,HEADER_H), C.Border)
 
-	local titleLbl = Label(header, title, UDim2.new(1,-60,1,0), UDim2.new(0,0,0,0), Color3.fromRGB(255,255,255), 13)
-	titleLbl.TextXAlignment = Enum.TextXAlignment.Center
-	titleLbl.Font = Enum.Font.Code
+	-- кнопка "×"
+	--[[cal xBtn = B(win, UDim2.new(0,20,0,HEADER_H), UDim2.new(1,-21,0,0), "X")
+	local xL   = L(xBtn, "×", UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), C.TextDim, 16)
+	xL.TextXAlignment = Enum.TextXAlignment.Center
+	xBtn.MouseEnter:Connect(function() tw(xL,{TextColor3=Color3.fromRGB(210,70,70)},0.07) end)
+	xBtn.MouseLeave:Connect(function() tw(xL,{TextColor3=C.TextDim},0.07) end)
+	xBtn.MouseButton1Click:Connect(function() gui:Destroy() end)]]
 
-	-- Закрыть
-	local closeBtn = Btn(header, UDim2.new(0,24,0,18), UDim2.new(1,-28,0,3), C.AccentDim, "Close")
-	Corner(closeBtn, 2)
-	local closeLbl = Label(closeBtn, "✕", UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), Color3.fromRGB(255,255,255), 11)
-	closeLbl.TextXAlignment = Enum.TextXAlignment.Center
-	closeBtn.MouseButton1Click:Connect(function()
-		tw(win, {Size=UDim2.new(0,520,0,0)}, 0.18)
-		task.wait(0.2)
-		gui:Destroy()
-	end)
-	closeBtn.MouseEnter:Connect(function() tw(closeBtn,{BackgroundColor3=Color3.fromRGB(255,50,100)},0.08) end)
-	closeBtn.MouseLeave:Connect(function() tw(closeBtn,{BackgroundColor3=C.AccentDim},0.08) end)
+	-- таббар
+	local tabBar = F(win, UDim2.new(1,0,0,TABBAR_H),
+		UDim2.new(0,0,0,HEADER_H+1), C.TabBar, "TabBar")
+	local tabLL = Instance.new("UIListLayout", tabBar)
+	tabLL.FillDirection = Enum.FillDirection.Horizontal
+	tabLL.SortOrder     = Enum.SortOrder.LayoutOrder
+	-- нижняя линия таббара
+	F(win, UDim2.new(1,0,0,1), UDim2.new(0,0,0,HEADER_H+TABBAR_H+1), C.Border)
 
-	-- ── Sidebar (вкладки слева, как на скрине) ──
-	local sidebar = Frame(win, UDim2.new(0,110,1,-24), UDim2.new(0,0,0,24), C.Sidebar, "Sidebar")
-	local sideLayout = Instance.new("UIListLayout")
-	sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	sideLayout.Parent = sidebar
+	-- контентная область
+	local CONT_Y = HEADER_H + TABBAR_H + 2
+	local content = F(win, UDim2.new(1,0,1,-CONT_Y), UDim2.new(0,0,0,CONT_Y), C.Win, "Cont")
+	content.BackgroundTransparency = 1
+	content.ClipsDescendants = true
 
-	-- Разделитель sidebar/content
-	Frame(win, UDim2.new(0,1,1,-24), UDim2.new(0,110,0,24), C.Border, "Divider")
-
-	-- ── Content area ──
-	local contentArea = Frame(win, UDim2.new(1,-111,1,-24), UDim2.new(0,111,0,24), C.Panel, "Content")
-	contentArea.BackgroundTransparency = 1
-
-	-- ── Toggle видимости ──
+	-- hide/show
 	local visible = true
-	UserInputService.InputBegan:Connect(function(inp, gp)
-		if not gp and inp.KeyCode == toggleKey then
-			visible = not visible
-			win.Visible = visible
+	UserInputService.InputBegan:Connect(function(i,gp)
+		if not gp and i.KeyCode==KEY then
+			visible=not visible; win.Visible=visible
 		end
 	end)
 
-	-- Анимация открытия
-	win.Size = UDim2.new(0,520,0,0)
-	tw(win, {Size = UDim2.new(0,520,0,370)}, 0.25)
+	-- анимация открытия
+	win.Size = UDim2.new(0,W,0,0)
+	tw(win, {Size=UDim2.new(0,W,0,H)}, 0.18)
 
 	local Window = {}
-	local tabs = {}
-	local activeTab = nil
+	local tabs   = {}
+	local active = nil
 
-	local function activateTab(tab)
-		if activeTab == tab then return end
-		if activeTab then
-			activeTab._scroll.Visible = false
-			tw(activeTab._btn, {BackgroundColor3 = C.TabInactive}, 0.1)
-			activeTab._btnLbl.TextColor3 = C.TabText
+	local function activate(tab)
+		if active==tab then return end
+		if active then
+			active._page.Visible        = false
+			active._btn.BackgroundColor3 = C.TabInactive
+			active._lbl.TextColor3       = C.TextDim
+			active._line.Visible         = false
 		end
-		activeTab = tab
-		tab._scroll.Visible = true
-		tw(tab._btn, {BackgroundColor3 = C.TabActive}, 0.1)
-		tab._btnLbl.TextColor3 = Color3.fromRGB(255,255,255)
+		active = tab
+		tab._page.Visible        = true
+		tab._btn.BackgroundColor3 = C.TabActive
+		tab._lbl.TextColor3       = C.Text
+		tab._line.Visible         = true
 	end
 
-	-- ── AddTab ────────────────────────────────────────────────
 	function Window:AddTab(name)
-		-- Кнопка в сайдбаре
-		local tabBtn = Btn(sidebar, UDim2.new(1,0,0,32), UDim2.new(0,0,0,0), C.TabInactive, "Tab_"..name)
-		local tabLbl = Label(tabBtn, name, UDim2.new(1,0,1,0), UDim2.new(0,14,0,0), C.TabText, 12)
+		local TW = 72
 
-		-- Розовая полоска слева на активной вкладке
-		local tabBar = Frame(tabBtn, UDim2.new(0,3,1,0), UDim2.new(0,0,0,0), C.Accent, "Bar")
-		tabBar.Visible = false
+		local btn = F(tabBar, UDim2.new(0,TW,1,0), UDim2.new(0,0,0,0), C.TabInactive, "TB")
+		local lbl = L(btn, name, UDim2.new(1,0,1,-2), UDim2.new(0,0,0,0), C.TextDim, 13)
+		lbl.TextXAlignment = Enum.TextXAlignment.Center
 
-		tabBtn.MouseEnter:Connect(function()
-			if activeTab and activeTab._btn == tabBtn then return end
-			tw(tabBtn, {BackgroundColor3 = Color3.fromRGB(35,35,35)}, 0.08)
+		-- боковые разделители между вкладками
+		F(btn, UDim2.new(0,1,1,0), UDim2.new(1,-1,0,0), C.Border)
+
+		-- линия снизу у активной вкладки
+		local line = F(btn, UDim2.new(1,0,0,1), UDim2.new(0,0,1,-1), C.TabLine, "Line")
+		line.Visible = false
+
+		-- страница
+		local page = F(content, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), C.Win, "Page")
+		page.BackgroundTransparency = 1
+		page.Visible = false
+
+		-- ЛЕВАЯ колонка
+		local lSF = Instance.new("ScrollingFrame", page)
+		lSF.Size                  = UDim2.new(0.5,-1,1,0)
+		lSF.Position              = UDim2.new(0,0,0,0)
+		lSF.BackgroundColor3      = C.Col
+		lSF.BorderSizePixel       = 0
+		lSF.ScrollBarThickness    = 2
+		lSF.ScrollBarImageColor3  = C.Border
+		lSF.CanvasSize            = UDim2.new(0,0,0,0)
+		lSF.AutomaticCanvasSize   = Enum.AutomaticSize.Y
+
+		local lLL = Instance.new("UIListLayout", lSF)
+		lLL.SortOrder = Enum.SortOrder.LayoutOrder
+		lLL.Padding   = UDim.new(0,0)
+
+		local lPad = Instance.new("UIPadding", lSF)
+		lPad.PaddingLeft   = UDim.new(0,8)
+		lPad.PaddingRight  = UDim.new(0,8)
+		lPad.PaddingTop    = UDim.new(0,6)
+		lPad.PaddingBottom = UDim.new(0,8)
+
+		-- разделитель колонок
+		F(page, UDim2.new(0,1,1,0), UDim2.new(0.5,-1,0,0), C.Border, "ColDiv")
+
+		-- ПРАВАЯ колонка
+		local rSF = Instance.new("ScrollingFrame", page)
+		rSF.Size                  = UDim2.new(0.5,-1,1,0)
+		rSF.Position              = UDim2.new(0.5,1,0,0)
+		rSF.BackgroundColor3      = C.Col
+		rSF.BorderSizePixel       = 0
+		rSF.ScrollBarThickness    = 2
+		rSF.ScrollBarImageColor3  = C.Border
+		rSF.CanvasSize            = UDim2.new(0,0,0,0)
+		rSF.AutomaticCanvasSize   = Enum.AutomaticSize.Y
+
+		local rLL = Instance.new("UIListLayout", rSF)
+		rLL.SortOrder = Enum.SortOrder.LayoutOrder
+		rLL.Padding   = UDim.new(0,0)
+
+		local rPad = Instance.new("UIPadding", rSF)
+		rPad.PaddingLeft   = UDim.new(0,8)
+		rPad.PaddingRight  = UDim.new(0,8)
+		rPad.PaddingTop    = UDim.new(0,6)
+		rPad.PaddingBottom = UDim.new(0,8)
+
+		local Tab = {_btn=btn, _lbl=lbl, _line=line, _page=page, _lSF=lSF, _rSF=rSF}
+
+		local tbBtn = B(btn, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0))
+		tbBtn.MouseButton1Click:Connect(function() activate(Tab) end)
+		btn.MouseEnter:Connect(function()
+			if active~=Tab then tw(lbl,{TextColor3=C.Text},0.06) end
 		end)
-		tabBtn.MouseLeave:Connect(function()
-			if activeTab and activeTab._btn == tabBtn then return end
-			tw(tabBtn, {BackgroundColor3 = C.TabInactive}, 0.08)
-		end)
-
-		-- ScrollingFrame для контента вкладки
-		local scroll = Instance.new("ScrollingFrame")
-		scroll.Size = UDim2.new(1,0,1,0)
-		scroll.Position = UDim2.new(0,0,0,0)
-		scroll.BackgroundTransparency = 1
-		scroll.BorderSizePixel = 0
-		scroll.ScrollBarThickness = 2
-		scroll.ScrollBarImageColor3 = C.Accent
-		scroll.CanvasSize = UDim2.new(0,0,0,0)
-		scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		scroll.Visible = false
-		scroll.Parent = contentArea
-
-		local layout = Instance.new("UIListLayout")
-		layout.SortOrder = Enum.SortOrder.LayoutOrder
-		layout.Padding = UDim.new(0, 1)
-		layout.Parent = scroll
-
-		local pad = Instance.new("UIPadding")
-		pad.PaddingLeft   = UDim.new(0,8)
-		pad.PaddingRight  = UDim.new(0,8)
-		pad.PaddingTop    = UDim.new(0,6)
-		pad.PaddingBottom = UDim.new(0,6)
-		pad.Parent = scroll
-
-		local Tab = {_btn = tabBtn, _btnLbl = tabLbl, _scroll = scroll, _order = 0, _bar = tabBar}
-
-		tabBtn.MouseButton1Click:Connect(function()
-			activateTab(Tab)
-			-- полоска
-			for _, t in pairs(tabs) do t._bar.Visible = false end
-			tabBar.Visible = true
+		btn.MouseLeave:Connect(function()
+			if active~=Tab then tw(lbl,{TextColor3=C.TextDim},0.06) end
 		end)
 
 		table.insert(tabs, Tab)
-		if #tabs == 1 then
-			activateTab(Tab)
-			tabBar.Visible = true
-		end
+		if #tabs==1 then activate(Tab) end
 
-		-- ── Создание элемента ──
-		local order = 0
-		local function item(h)
-			order += 1
-			local f = Frame(scroll, UDim2.new(1,0,0,h), UDim2.new(0,0,0,0), C.Panel)
+		local lOrd, rOrd = 0, 0
+
+		-- создать строку в колонке
+		local function row(col, h)
+			local sf, ord
+			if col=="right" then rOrd+=1; sf=rSF; ord=rOrd
+			else                 lOrd+=1; sf=lSF; ord=lOrd end
+			local f = F(sf, UDim2.new(1,0,0,h), UDim2.new(0,0,0,0), C.Col, "Row")
 			f.BackgroundTransparency = 1
-			f.LayoutOrder = order
+			f.LayoutOrder = ord
 			return f
 		end
 
-		-- ── AddSection ────────────────────────────────────
-		function Tab:AddSection(text)
-			local f = item(18)
-			local lbl = Label(f, text, UDim2.new(1,0,1,0), UDim2.new(0,2,0,0), C.TextDim, 11)
-			-- нижняя линия
-			local line = Frame(f, UDim2.new(1,0,0,1), UDim2.new(0,0,1,-1), C.Border)
-			return {SetText = function(_,t) lbl.Text=t end}
+		function Tab:AddSection(text, col)
+			local f = row(col, 30)
+			L(f, text, UDim2.new(1,0,1,-1), UDim2.new(0,0,0,0), C.Section, 13)
+			F(f, UDim2.new(1,0,0,1), UDim2.new(0,0,1,-1), C.Border)
 		end
 
-		-- ── AddLabel ──────────────────────────────────────
-		function Tab:AddLabel(text)
-			local f = item(20)
-			local lbl = Label(f, text, UDim2.new(1,0,1,0), UDim2.new(0,2,0,0), C.TextDim, 11)
-			return {SetText = function(_,t) lbl.Text=t end}
-		end
+		function Tab:AddToggle(text, default, callback, col, bind)
+			local f   = row(col, 28)
+			local val = default or false
 
-		-- ── AddToggle ─────────────────────────────────────
-		-- Стиль как на скрине: маленький круглый кружок слева
-		function Tab:AddToggle(text, default, callback)
-			local f = item(24)
-			local value = default or false
+			-- чекбокс — квадрат как в CS:GO чите
+			local cb = F(f, UDim2.new(0,13,0,13), UDim2.new(0,0,0.5,-6),
+				val and C.TextBright or C.CheckOff, "CB")
+			Stroke(cb, C.CheckBorder, 1)
 
-			-- Кружок (как на скрине — заполненный круг = включён)
-			local circle = Frame(f, UDim2.new(0,12,0,12), UDim2.new(0,0,0.5,-6), value and C.Toggle_On or C.Toggle_Off)
-			Corner(circle, 6)
+			-- текст
+			local bindW = bind and (#bind * 8 + 4) or 0
+			local tl = L(f, text,
+				UDim2.new(1,-(20 + bindW), 1, 0),
+				UDim2.new(0,18,0,0),
+				val and C.TextBright or C.Text,
+				13)
 
-			Label(f, text, UDim2.new(1,-20,1,0), UDim2.new(0,18,0,0), C.Text, 12)
-
-			local clickBtn = Btn(f, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), Color3.fromRGB(0,0,0))
-			clickBtn.BackgroundTransparency = 1
-			clickBtn.ZIndex = 2
-			clickBtn.MouseButton1Click:Connect(function()
-				value = not value
-				tw(circle, {BackgroundColor3 = value and C.Toggle_On or C.Toggle_Off}, 0.12)
-				if callback then callback(value) end
-			end)
-
-			return {
-				Set = function(_, v) value=v; tw(circle,{BackgroundColor3=v and C.Toggle_On or C.Toggle_Off},0.12); if callback then callback(v) end end,
-				Get = function(_) return value end,
-			}
-		end
-
-		-- ── AddButton ─────────────────────────────────────
-		function Tab:AddButton(text, callback)
-			local f = item(26)
-			local btn = Btn(f, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), C.Panel)
-			Stroke(btn, C.Border)
-			Corner(btn, 2)
-			local lbl = Label(btn, text, UDim2.new(1,0,1,0), UDim2.new(0,8,0,0), C.Text, 12)
-			lbl.TextXAlignment = Enum.TextXAlignment.Left
-
-			btn.MouseEnter:Connect(function() tw(btn,{BackgroundColor3=Color3.fromRGB(50,50,50)},0.08) end)
-			btn.MouseLeave:Connect(function() tw(btn,{BackgroundColor3=C.Panel},0.08) end)
-			btn.MouseButton1Down:Connect(function() tw(btn,{BackgroundColor3=C.AccentDim},0.06) end)
-			btn.MouseButton1Up:Connect(function()
-				tw(btn,{BackgroundColor3=Color3.fromRGB(50,50,50)},0.08)
-				if callback then callback() end
-			end)
-
-			local enabled = true
-			return {
-				SetText    = function(_,t) lbl.Text=t end,
-				SetEnabled = function(_,v) enabled=v; btn.Active=v; lbl.TextColor3=v and C.Text or C.TextDim end,
-			}
-		end
-
-		-- ── AddSlider ─────────────────────────────────────
-		-- Стиль как на скрине: полная ширина, розовая заливка, текст по центру
-		function Tab:AddSlider(text, opts, callback)
-			opts = opts or {}
-			local min  = opts.Min     or 0
-			local max  = opts.Max     or 100
-			local step = opts.Step    or 1
-			local val  = opts.Default or min
-
-			local f = item(42)
-
-			-- Лейбл сверху
-			Label(f, text, UDim2.new(1,0,0,16), UDim2.new(0,0,0,0), C.TextDim, 11)
-
-			-- Слайдер (полная ширина как на скрине)
-			local track = Frame(f, UDim2.new(1,0,0,18), UDim2.new(0,0,0,18), C.TrackBG)
-			Corner(track, 2)
-			local fill = Frame(track, UDim2.new((val-min)/(max-min),0,1,0), UDim2.new(0,0,0,0), C.AccentFill)
-			Corner(fill, 2)
-			-- Значение по центру слайдера (как на скрине)
-			local valLbl = Label(track, tostring(val), UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), Color3.fromRGB(255,255,255), 11)
-			valLbl.TextXAlignment = Enum.TextXAlignment.Center
-			valLbl.ZIndex = 3
-
-			local sliding = false
-			local trackBtn = Btn(track, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), Color3.fromRGB(0,0,0))
-			trackBtn.BackgroundTransparency = 1
-			trackBtn.ZIndex = 4
-
-			local function setVal(v)
-				v = math.clamp(math.round((v-min)/step)*step+min, min, max)
-				val = v
-				local t = (v-min)/(max-min)
-				tw(fill, {Size=UDim2.new(t,0,1,0)}, 0.06)
-				valLbl.Text = tostring(v)
-				if callback then callback(v) end
+			-- бинд справа
+			if bind then
+				local bl = L(f, bind,
+					UDim2.new(0, bindW, 1, 0),
+					UDim2.new(1, -bindW, 0, 0),
+					C.Bind, 12)
+				bl.TextXAlignment = Enum.TextXAlignment.Right
 			end
 
-			trackBtn.InputBegan:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 then sliding=true end
-			end)
-			UserInputService.InputEnded:Connect(function(i)
-				if i.UserInputType == Enum.UserInputType.MouseButton1 then sliding=false end
-			end)
-			RunService.RenderStepped:Connect(function()
-				if sliding then
-					local rel = (Mouse.X-track.AbsolutePosition.X)/track.AbsoluteSize.X
-					setVal(min+rel*(max-min))
-				end
+			local btn = B(f, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0))
+			btn.ZIndex = 3
+
+			local function upd(v)
+				tw(cb, {BackgroundColor3 = v and C.TextBright or C.CheckOff}, 0.07)
+				tw(tl, {TextColor3 = v and C.TextBright or C.Text}, 0.07)
+			end
+
+			btn.MouseButton1Click:Connect(function()
+				val=not val; upd(val)
+				if callback then callback(val) end
 			end)
 
 			return {
-				Set = function(_,v) setVal(v) end,
+				Set = function(_,v) val=v; upd(v); if callback then callback(v) end end,
 				Get = function(_) return val end,
 			}
 		end
 
-		-- ── AddDropdown ───────────────────────────────────
-		-- Стиль как на скрине: ▼ треугольник справа
-		function Tab:AddDropdown(text, list, default, callback)
-			local f = item(24)
-			local selected = default or (list[1] or "")
+		function Tab:AddSlider(text, opts, callback, col)
+			opts       = opts or {}
+			local mn   = opts.Min     or 0
+			local mx   = opts.Max     or 100
+			local step = opts.Step    or 1
+			local val  = opts.Default or mn
+			local fmt  = opts.Format
 
-			local row = Btn(f, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), C.Panel)
-			row.BackgroundTransparency = 1
-
-			-- ▼ треугольник (как на скрине)
-			local arrow = Label(f, "▼", UDim2.new(0,16,1,0), UDim2.new(0,0,0,0), C.Accent, 10)
-			arrow.TextXAlignment = Enum.TextXAlignment.Center
-			local selLbl = Label(f, selected, UDim2.new(1,-80,1,0), UDim2.new(0,18,0,0), C.Text, 12)
-			-- текст справа (название параметра)
-			Label(f, text, UDim2.new(0,120,1,0), UDim2.new(1,-128,0,0), C.TextDim, 11)
-
-			local open = false
-			local dropFrame
-
-			local function closeDD()
-				if dropFrame then dropFrame:Destroy(); dropFrame=nil end
-				open = false
+			local function fv(v)
+				if fmt then return string.format(fmt,v) end
+				if step<1 then return string.format("%.1f",v) end
+				return tostring(math.floor(v))
 			end
 
-			row.MouseButton1Click:Connect(function()
+			local f = row(col, 50)
+
+			L(f, text, UDim2.new(1,0,0,18), UDim2.new(0,0,0,0), C.Section, 13)
+
+			-- значение слева
+			local valL = L(f, fv(val),
+				UDim2.new(0,40,0,20), UDim2.new(0,0,0,18),
+				C.SliderVal, 12)
+
+			-- трек
+			local track = F(f,
+				UDim2.new(1,-54,0,10),
+				UDim2.new(0,42,0,22),
+				C.SliderBG, "Trk")
+
+			local fill = F(track,
+				UDim2.new((val-mn)/(mx-mn),0,1,0),
+				UDim2.new(0,0,0,0),
+				C.SliderFill, "Fill")
+
+			-- "+" справа
+			local plusL = L(f, "+",
+				UDim2.new(0,12,0,20), UDim2.new(1,-14,0,18),
+				C.TextDim, 15)
+
+			-- hitbox на весь ряд слайдера
+			local hit = B(f, UDim2.new(1,0,0,26), UDim2.new(0,0,0,18))
+			hit.ZIndex = 4
+
+			local sliding = false
+
+			local function setV(v)
+				v = math.clamp(
+					math.round((v-mn)/step)*step+mn,
+					mn, mx)
+				val = v
+				fill.Size = UDim2.new((v-mn)/(mx-mn),0,1,0)
+				valL.Text = fv(v)
+				if callback then callback(v) end
+			end
+
+			local function calcV()
+				local rel = (Mouse.X - track.AbsolutePosition.X)
+					/ math.max(track.AbsoluteSize.X, 1)
+				setV(mn + math.clamp(rel,0,1)*(mx-mn))
+			end
+
+			hit.InputBegan:Connect(function(i)
+				if i.UserInputType==Enum.UserInputType.MouseButton1 then
+					sliding=true; calcV()
+				end
+			end)
+			UserInputService.InputEnded:Connect(function(i)
+				if i.UserInputType==Enum.UserInputType.MouseButton1 then
+					sliding=false
+				end
+			end)
+			RunService.RenderStepped:Connect(function()
+				if sliding then calcV() end
+			end)
+
+			-- "+" увеличивает на step
+			local plusBtn = B(f, UDim2.new(0,14,0,20), UDim2.new(1,-15,0,18))
+			plusBtn.ZIndex = 5
+			plusBtn.MouseButton1Click:Connect(function() setV(val+step) end)
+			plusL.MouseEnter:Connect(function() tw(plusL,{TextColor3=C.Text},0.06) end)
+			plusL.MouseLeave:Connect(function() tw(plusL,{TextColor3=C.TextDim},0.06) end)
+
+			return {
+				Set = function(_,v) setV(v) end,
+				Get = function(_) return val end,
+			}
+		end
+
+		function Tab:AddDropdown(text, list, default, callback, col)
+			local sel = default or (list[1] or "")
+			-- 50px: 18 (имя) + 24 (бокс) + 8 (отступ)
+			local f   = row(col, 50)
+
+			-- имя параметра
+			L(f, text, UDim2.new(1,0,0,18), UDim2.new(0,0,0,0), C.TextBright, 13)
+
+			-- поле выбора
+			local box = F(f, UDim2.new(1,0,0,22), UDim2.new(0,0,0,20), C.DropBG, "Box")
+			Stroke(box, C.DropBorder)
+
+			local selL = L(box, sel, UDim2.new(1,-22,1,0), UDim2.new(0,6,0,0), C.Text, 12)
+
+			local arrL = L(box, "▾",
+				UDim2.new(0,16,1,0), UDim2.new(1,-18,0,0), C.TextDim, 13)
+			arrL.TextXAlignment = Enum.TextXAlignment.Center
+
+			local open = false
+			local dropF = nil
+
+			local function closeDD()
+				if dropF then dropF:Destroy(); dropF=nil end
+				open=false
+				tw(arrL,{TextColor3=C.TextDim},0.06)
+			end
+
+			local bb = B(f, UDim2.new(1,0,0,22), UDim2.new(0,0,0,20))
+			bb.ZIndex = 4
+
+			bb.MouseButton1Click:Connect(function()
 				if open then closeDD(); return end
-				open = true
-				local absPos = f.AbsolutePosition
-				local absSize = f.AbsoluteSize
+				open=true
+				tw(arrL,{TextColor3=C.Text},0.06)
 
-				dropFrame = Frame(gui,
-					UDim2.new(0, absSize.X, 0, math.min(#list,6)*22+6),
-					UDim2.new(0, absPos.X, 0, absPos.Y+absSize.Y+2),
-					C.Dropdown)
-				dropFrame.ZIndex = 50
-				Corner(dropFrame, 3)
-				Stroke(dropFrame, C.Accent)
+				local ap = box.AbsolutePosition
+				local as = box.AbsoluteSize
+				local cnt = math.min(#list,8)
 
-				local dl = Instance.new("UIListLayout")
-				dl.SortOrder = Enum.SortOrder.LayoutOrder
-				dl.Parent = dropFrame
-				local dp = Instance.new("UIPadding")
-				dp.PaddingLeft=UDim.new(0,4); dp.PaddingRight=UDim.new(0,4)
+				dropF = F(gui,
+					UDim2.new(0,as.X,0,cnt*22+6),
+					UDim2.new(0,ap.X,0,ap.Y+as.Y+1),
+					C.DropBG, "Drop")
+				dropF.ZIndex = 100
+				gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+				Stroke(dropF, C.BorderHi)
+
+				local dl = Instance.new("UIListLayout",dropF)
+				dl.SortOrder=Enum.SortOrder.LayoutOrder
+				dl.Padding=UDim.new(0,0)
+
+				local dp=Instance.new("UIPadding",dropF)
 				dp.PaddingTop=UDim.new(0,3); dp.PaddingBottom=UDim.new(0,3)
-				dp.Parent = dropFrame
 
-				for _, opt in ipairs(list) do
-					local ob = Btn(dropFrame, UDim2.new(1,0,0,22), UDim2.new(0,0,0,0), C.Dropdown)
-					ob.ZIndex = 51
-					Corner(ob, 2)
-					local ol = Label(ob, opt, UDim2.new(1,-6,1,0), UDim2.new(0,4,0,0), opt==selected and C.Accent or C.Text, 11)
-					ol.ZIndex = 52
-					ob.MouseEnter:Connect(function() tw(ob,{BackgroundColor3=Color3.fromRGB(55,55,55)},0.07) end)
-					ob.MouseLeave:Connect(function() tw(ob,{BackgroundColor3=C.Dropdown},0.07) end)
-					ob.MouseButton1Click:Connect(function()
-						selected=opt; selLbl.Text=opt; closeDD()
+				for idx,opt in ipairs(list) do
+					local ob = F(dropF, UDim2.new(1,0,0,22), UDim2.new(0,0,0,0),
+						opt==sel and Color3.fromRGB(38,38,38) or C.DropBG, "O"..idx)
+					ob.ZIndex = 101
+					local ol = L(ob, opt, UDim2.new(1,-10,1,0), UDim2.new(0,6,0,0),
+						opt==sel and C.TextBright or C.Text, 12)
+					ol.ZIndex = 102
+					local ob2 = B(ob, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0))
+					ob2.ZIndex = 103
+					ob2.MouseEnter:Connect(function()
+						tw(ob,{BackgroundColor3=Color3.fromRGB(42,42,42)},0.05)
+					end)
+					ob2.MouseLeave:Connect(function()
+						tw(ob,{BackgroundColor3=opt==sel and Color3.fromRGB(38,38,38) or C.DropBG},0.05)
+					end)
+					ob2.MouseButton1Click:Connect(function()
+						sel=opt; selL.Text=opt; closeDD()
 						if callback then callback(opt) end
 					end)
 				end
 			end)
 
-			UserInputService.InputBegan:Connect(function(inp)
-				if open and inp.UserInputType==Enum.UserInputType.MouseButton1 then
+			UserInputService.InputBegan:Connect(function(i)
+				if open and i.UserInputType==Enum.UserInputType.MouseButton1 then
 					task.defer(function()
-						if not dropFrame or not dropFrame.Parent then return end
-						local mp = UserInputService:GetMouseLocation()
-						local p,s = dropFrame.AbsolutePosition, dropFrame.AbsoluteSize
-						if mp.X<p.X or mp.X>p.X+s.X or mp.Y<p.Y or mp.Y>p.Y+s.Y then closeDD() end
+						if not dropF or not dropF.Parent then return end
+						local mp=UserInputService:GetMouseLocation()
+						local p=dropF.AbsolutePosition; local s=dropF.AbsoluteSize
+						if mp.X<p.X or mp.X>p.X+s.X or mp.Y<p.Y or mp.Y>p.Y+s.Y then
+							closeDD()
+						end
 					end)
 				end
 			end)
 
 			return {
-				Set = function(_,v) selected=v; selLbl.Text=v end,
-				Get = function(_) return selected end,
+				Set        = function(_,v) sel=v; selL.Text=v end,
+				Get        = function(_) return sel end,
 				UpdateList = function(_,nl) list=nl end,
 			}
 		end
 
-		-- ── AddTextbox ────────────────────────────────────
-		function Tab:AddTextbox(text, placeholder, callback)
-			local f = item(24)
-			Label(f, text, UDim2.new(0.45,0,1,0), UDim2.new(0,0,0,0), C.Text, 12)
-			local box = Frame(f, UDim2.new(0.55,-4,0,20), UDim2.new(0.45,2,0.5,-10), C.TrackBG)
-			Corner(box, 2)
-			Stroke(box, C.Border)
-			local tb = Instance.new("TextBox")
-			tb.Size = UDim2.new(1,-8,1,0)
-			tb.Position = UDim2.new(0,4,0,0)
+		function Tab:AddButton(text, callback, col)
+			local f   = row(col, 34)
+			local btn = F(f, UDim2.new(1,0,0,24), UDim2.new(0,0,0.5,-12), C.DropBG, "Btn")
+			Stroke(btn, C.DropBorder)
+			local lbl = L(btn, text, UDim2.new(1,-10,1,0), UDim2.new(0,8,0,0), C.Text, 12)
+			local bb  = B(f, UDim2.new(1,0,0,24), UDim2.new(0,0,0.5,-12))
+			bb.ZIndex=3
+			bb.MouseEnter:Connect(function()
+				tw(btn,{BackgroundColor3=Color3.fromRGB(38,38,38)},0.06)
+				tw(lbl,{TextColor3=C.TextBright},0.06)
+			end)
+			bb.MouseLeave:Connect(function()
+				tw(btn,{BackgroundColor3=C.DropBG},0.06)
+				tw(lbl,{TextColor3=C.Text},0.06)
+			end)
+			bb.MouseButton1Down:Connect(function()
+				tw(btn,{BackgroundColor3=Color3.fromRGB(44,44,44)},0.04)
+			end)
+			bb.MouseButton1Up:Connect(function()
+				tw(btn,{BackgroundColor3=Color3.fromRGB(38,38,38)},0.06)
+				if callback then callback() end
+			end)
+			return { SetText=function(_,t) lbl.Text=t end }
+		end
+
+		function Tab:AddTextbox(text, placeholder, callback, col)
+			local f = row(col, 50)
+			L(f, text, UDim2.new(1,0,0,18), UDim2.new(0,0,0,0), C.TextBright, 13)
+			local box = F(f, UDim2.new(1,0,0,22), UDim2.new(0,0,0,20), C.DropBG, "TBox")
+			local str = Stroke(box, C.DropBorder)
+			local tb  = Instance.new("TextBox", box)
+			tb.Size              = UDim2.new(1,-10,1,0)
+			tb.Position          = UDim2.new(0,5,0,0)
 			tb.BackgroundTransparency = 1
-			tb.Text = ""
-			tb.PlaceholderText = placeholder or ""
-			tb.TextColor3 = C.Text
+			tb.Text              = ""
+			tb.PlaceholderText   = placeholder or ""
+			tb.TextColor3        = C.Text
 			tb.PlaceholderColor3 = C.TextDim
-			tb.TextSize = 11
-			tb.Font = Enum.Font.Code
-			tb.TextXAlignment = Enum.TextXAlignment.Left
-			tb.ClearTextOnFocus = false
-			tb.Parent = box
-			tb.Focused:Connect(function() Stroke(box, C.Accent) end)
-			tb.FocusLost:Connect(function() Stroke(box, C.Border); if callback then callback(tb.Text) end end)
+			tb.TextSize          = 12
+			tb.Font              = Enum.Font.Code
+			tb.TextXAlignment    = Enum.TextXAlignment.Left
+			tb.ClearTextOnFocus  = false
+			tb.Focused:Connect(function()   str.Color=C.BorderHi end)
+			tb.FocusLost:Connect(function()
+				str.Color=C.DropBorder
+				if callback then callback(tb.Text) end
+			end)
 			return {
-				Set = function(_,v) tb.Text=v end,
-				Get = function(_) return tb.Text end,
+				Set=function(_,v) tb.Text=v end,
+				Get=function(_) return tb.Text end,
 			}
 		end
 
-		-- ── AddKeybind ────────────────────────────────────
-		function Tab:AddKeybind(text, default, callback)
-			local f = item(24)
-			Label(f, text, UDim2.new(1,-80,1,0), UDim2.new(0,0,0,0), C.Text, 12)
-			local box = Frame(f, UDim2.new(0,70,0,18), UDim2.new(1,-72,0.5,-9), C.TrackBG)
-			Corner(box, 2)
-			Stroke(box, C.Border)
-			local kLbl = Label(box, default and default.Name or "None", UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), C.Accent, 10)
-			kLbl.TextXAlignment = Enum.TextXAlignment.Center
-
-			local cur = default
-			local listening = false
-			local boxBtn = Btn(f, UDim2.new(0,70,0,18), UDim2.new(1,-72,0.5,-9), Color3.fromRGB(0,0,0))
-			boxBtn.BackgroundTransparency = 1
-			boxBtn.ZIndex = 3
-			boxBtn.MouseButton1Click:Connect(function()
-				listening = true; kLbl.Text = "..."; tw(box,{BackgroundColor3=C.AccentDim},0.08)
-			end)
-			UserInputService.InputBegan:Connect(function(inp, gp)
-				if listening and inp.UserInputType==Enum.UserInputType.Keyboard then
-					listening=false; cur=inp.KeyCode; kLbl.Text=inp.KeyCode.Name
-					tw(box,{BackgroundColor3=C.TrackBG},0.08)
-				elseif not listening and inp.KeyCode==cur and not gp then
-					if callback then callback(cur) end
-				end
-			end)
-			return {
-				Set = function(_,k) cur=k; kLbl.Text=k and k.Name or "None" end,
-				Get = function(_) return cur end,
-			}
+		function Tab:AddLabel(text, col)
+			local f  = row(col, 24)
+			local lb = L(f, text, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), C.TextDim, 12)
+			return { SetText=function(_,t) lb.Text=t end }
 		end
 
-		-- ── AddColorPicker ────────────────────────────────
-		-- Выбор цвета через дропдаун с preset цветами
-		function Tab:AddColorPicker(text, default, callback)
-			local colorList = {
-				"Magenta",
-				"Red",
-				"Orange",
-				"Yellow",
-				"Green",
-				"Cyan",
-				"Blue",
-				"Purple",
-				"White",
+		function Tab:AddColorPicker(text, default, callback, col)
+			local colors = {
+				{"White",  Color3.fromRGB(230,230,230)},
+				{"Black",  Color3.fromRGB(0,  0,  0  )},
+				{"Red",    Color3.fromRGB(210,55, 55 )},
+				{"Orange", Color3.fromRGB(240,130,0  )},
+				{"Yellow", Color3.fromRGB(215,200,0  )},
+				{"Green",  Color3.fromRGB(55, 190,75 )},
+				{"Cyan",   Color3.fromRGB(70, 200,200)},
+				{"Blue",   Color3.fromRGB(70, 130,210)},
+				{"Purple", Color3.fromRGB(140,55, 210)},
+				{"Pink",   Color3.fromRGB(210,75, 150)},
 			}
-			local colorMap = {
-				Magenta = Color3.fromRGB(220, 0,   140),
-				Red     = Color3.fromRGB(255, 50,  50),
-				Orange  = Color3.fromRGB(255, 140, 0),
-				Yellow  = Color3.fromRGB(255, 220, 0),
-				Green   = Color3.fromRGB(0,   220, 80),
-				Cyan    = Color3.fromRGB(0,   220, 220),
-				Blue    = Color3.fromRGB(50,  130, 255),
-				Purple  = Color3.fromRGB(160, 0,   255),
-				White   = Color3.fromRGB(255, 255, 255),
-			}
-
-			-- Найти ближайший цвет к дефолту
-			local defaultName = "Magenta"
+			local selN = "White"; local selC = colors[1][2]
 			if default then
-				local bestDist = math.huge
-				for name, col in pairs(colorMap) do
-					local dist = (Vector3.new(col.R,col.G,col.B) - Vector3.new(default.R,default.G,default.B)).Magnitude
-					if dist < bestDist then bestDist = dist; defaultName = name end
+				local best=math.huge
+				for _,p in ipairs(colors) do
+					local d=(Vector3.new(p[2].R,p[2].G,p[2].B)
+						-Vector3.new(default.R,default.G,default.B)).Magnitude
+					if d<best then best=d; selN=p[1]; selC=p[2] end
 				end
 			end
 
-			local currentColor = colorMap[defaultName]
+			local f = row(col, 50)
+			L(f, text, UDim2.new(1,0,0,18), UDim2.new(0,0,0,0), C.TextBright, 13)
 
-			-- Основной фрейм: превью + дропдаун
-			local f = item(24)
-			Label(f, text, UDim2.new(1,-110,1,0), UDim2.new(0,0,0,0), C.Text, 12)
+			local box = F(f, UDim2.new(1,0,0,22), UDim2.new(0,0,0,20), C.DropBG, "CPBox")
+			Stroke(box, C.DropBorder)
 
-			-- Цветной превью квадратик
-			local preview = Frame(f, UDim2.new(0,18,0,18), UDim2.new(1,-108,0.5,-9), currentColor)
-			Corner(preview, 3)
-			Stroke(preview, C.Border)
+			local dot = F(box, UDim2.new(0,12,0,12), UDim2.new(0,5,0.5,-6), selC, "Dot")
+			-- обводка для чёрного кружка чтобы был виден
+			local dotStroke = Stroke(dot, C.BorderHi, 1)
+			local ci = Instance.new("UICorner",dot); ci.CornerRadius=UDim.new(1,0)
 
-			-- Дропдаун выбора цвета
-			local selected = defaultName
-			local box = Frame(f, UDim2.new(0,82,0,20), UDim2.new(1,-86,0.5,-10), C.TrackBG)
-			Corner(box, 2)
-			Stroke(box, C.Border)
-			local arrow = Label(box, "▼", UDim2.new(0,14,1,0), UDim2.new(1,-16,0,0), C.Accent, 10)
-			arrow.TextXAlignment = Enum.TextXAlignment.Center
-			local selLbl = Label(box, selected, UDim2.new(1,-20,1,0), UDim2.new(0,4,0,0), C.Text, 10)
+			local selL = L(box, selN, UDim2.new(1,-36,1,0), UDim2.new(0,22,0,0), C.Text, 12)
+			local arrL = L(box, "▾", UDim2.new(0,16,1,0), UDim2.new(1,-18,0,0), C.TextDim, 13)
+			arrL.TextXAlignment = Enum.TextXAlignment.Center
 
-			local open = false
-			local dropFrame
+			local open=false; local dropF=nil
 
 			local function closeDD()
-				if dropFrame then dropFrame:Destroy(); dropFrame = nil end
-				open = false
+				if dropF then dropF:Destroy(); dropF=nil end
+				open=false
 			end
 
-			local boxBtn = Btn(f, UDim2.new(0,82,0,20), UDim2.new(1,-86,0.5,-10), Color3.fromRGB(0,0,0))
-			boxBtn.BackgroundTransparency = 1
-			boxBtn.ZIndex = 3
+			local bb=B(f,UDim2.new(1,0,0,22),UDim2.new(0,0,0,20)); bb.ZIndex=4
 
-			boxBtn.MouseButton1Click:Connect(function()
+			bb.MouseButton1Click:Connect(function()
 				if open then closeDD(); return end
-				open = true
+				open=true
 
-				dropFrame = Frame(gui,
-					UDim2.new(0, 86, 0, #colorList * 20 + 6),
-					UDim2.new(0, box.AbsolutePosition.X, 0, box.AbsolutePosition.Y + 22),
-					C.Dropdown)
-				dropFrame.ZIndex = 50
-				Corner(dropFrame, 3)
-				Stroke(dropFrame, C.Accent)
+				local ap     = box.AbsolutePosition
+				local as     = box.AbsoluteSize
+				local ITEM_H = 22
+				local dropH  = #colors * ITEM_H + 6
 
-				local dl = Instance.new("UIListLayout")
+				-- если не влезает снизу — открываем вверх
+				local dropY
+				if ap.Y + as.Y + dropH > gui.AbsoluteSize.Y - 4 then
+					dropY = ap.Y - dropH - 1
+				else
+					dropY = ap.Y + as.Y + 1
+				end
+
+				dropF = F(gui,
+					UDim2.new(0,as.X,0,dropH),
+					UDim2.new(0,ap.X,0,dropY),
+					C.DropBG, "CPDrop")
+				dropF.ZIndex = 100
+				-- ZIndexBehavior Global чтобы все дочерние элементы
+				-- не ограничивались ZIndex родителя
+				gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+				Stroke(dropF, C.BorderHi)
+
+				local dl = Instance.new("UIListLayout", dropF)
 				dl.SortOrder = Enum.SortOrder.LayoutOrder
-				dl.Parent = dropFrame
-				local dp = Instance.new("UIPadding")
-				dp.PaddingLeft=UDim.new(0,4); dp.PaddingRight=UDim.new(0,4)
-				dp.PaddingTop=UDim.new(0,3); dp.PaddingBottom=UDim.new(0,3)
-				dp.Parent = dropFrame
+				dl.Padding   = UDim.new(0,0)
 
-				for _, colorName in ipairs(colorList) do
-					local col = colorMap[colorName]
-					local ob = Btn(dropFrame, UDim2.new(1,0,0,20), UDim2.new(0,0,0,0), C.Dropdown)
-					ob.ZIndex = 51
-					Corner(ob, 2)
-					-- цветная точка
-					local dot = Frame(ob, UDim2.new(0,10,0,10), UDim2.new(0,2,0.5,-5), col)
-					Corner(dot, 5)
-					dot.ZIndex = 52
-					local ol = Label(ob, colorName, UDim2.new(1,-18,1,0), UDim2.new(0,16,0,0),
-						colorName == selected and C.Accent or C.Text, 10)
-					ol.ZIndex = 52
-					ob.MouseEnter:Connect(function() tw(ob,{BackgroundColor3=Color3.fromRGB(55,55,55)},0.07) end)
-					ob.MouseLeave:Connect(function() tw(ob,{BackgroundColor3=C.Dropdown},0.07) end)
-					ob.MouseButton1Click:Connect(function()
-						selected = colorName
-						currentColor = col
-						selLbl.Text = colorName
-						tw(preview, {BackgroundColor3 = col}, 0.1)
+				local dp = Instance.new("UIPadding", dropF)
+				dp.PaddingTop=UDim.new(0,3); dp.PaddingBottom=UDim.new(0,3)
+
+				for _,pair in ipairs(colors) do
+					local cn,cv = pair[1],pair[2]
+					local ob = F(dropF, UDim2.new(1,0,0,ITEM_H), UDim2.new(0,0,0,0),
+						cn==selN and Color3.fromRGB(38,38,38) or C.DropBG)
+					ob.ZIndex = 101
+
+					local cdot = F(ob, UDim2.new(0,10,0,10), UDim2.new(0,5,0.5,-5), cv)
+					Stroke(cdot, C.BorderHi, 1)
+					local cci = Instance.new("UICorner",cdot); cci.CornerRadius=UDim.new(1,0)
+					cdot.ZIndex = 102
+
+					local ol = L(ob, cn, UDim2.new(1,-22,1,0), UDim2.new(0,20,0,0),
+						cn==selN and C.TextBright or C.Text, 12)
+					ol.ZIndex = 102
+
+					local ob2 = B(ob, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0))
+					ob2.ZIndex = 103
+					ob2.MouseEnter:Connect(function()
+						tw(ob,{BackgroundColor3=Color3.fromRGB(42,42,42)},0.05)
+					end)
+					ob2.MouseLeave:Connect(function()
+						tw(ob,{BackgroundColor3=cn==selN and Color3.fromRGB(38,38,38) or C.DropBG},0.05)
+					end)
+					ob2.MouseButton1Click:Connect(function()
+						selN=cn; selC=cv
+						selL.Text=cn
+						tw(dot,{BackgroundColor3=cv},0.07)
 						closeDD()
-						if callback then callback(col) end
+						if callback then callback(cv) end
 					end)
 				end
 			end)
 
-			UserInputService.InputBegan:Connect(function(inp)
-				if open and inp.UserInputType == Enum.UserInputType.MouseButton1 then
+			UserInputService.InputBegan:Connect(function(i)
+				if open and i.UserInputType==Enum.UserInputType.MouseButton1 then
 					task.defer(function()
-						if not dropFrame or not dropFrame.Parent then return end
-						local mp = UserInputService:GetMouseLocation()
-						local p, s = dropFrame.AbsolutePosition, dropFrame.AbsoluteSize
-						if mp.X < p.X or mp.X > p.X+s.X or mp.Y < p.Y or mp.Y > p.Y+s.Y then closeDD() end
+						if not dropF or not dropF.Parent then return end
+						local mp=UserInputService:GetMouseLocation()
+						local p=dropF.AbsolutePosition; local s=dropF.AbsoluteSize
+						if mp.X<p.X or mp.X>p.X+s.X or mp.Y<p.Y or mp.Y>p.Y+s.Y then
+							closeDD()
+						end
 					end)
 				end
 			end)
 
 			return {
-				Set = function(_, c)
-					currentColor = c
-					tw(preview, {BackgroundColor3 = c}, 0.1)
+				Set=function(_,c)
+					selC=c
+					tw(dot,{BackgroundColor3=c},0.07)
 					if callback then callback(c) end
 				end,
-				Get = function(_) return currentColor end,
+				Get=function(_) return selC end,
 			}
 		end
 
 		return Tab
 	end
 
-	function Window:Toggle()
-		visible = not visible
-		win.Visible = visible
-	end
-	function Window:Destroy()
-		gui:Destroy()
-	end
+	function Window:Toggle() visible=not visible; win.Visible=visible end
+	function Window:Destroy() gui:Destroy() end
 
 	return Window
 end
 
-return CheatLib
+return ui
