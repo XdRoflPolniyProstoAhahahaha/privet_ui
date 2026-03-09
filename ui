@@ -86,7 +86,7 @@ local function notifHolder()
 	if _nh and _nh.Parent then return _nh end
 	local sg = Instance.new("ScreenGui")
 	sg.Name, sg.ResetOnSpawn, sg.DisplayOrder, sg.IgnoreGuiInset = "BRN", false, 999, true
-	sg.Parent = gethui()
+	sg.Parent = (gethui and gethui()) or LP:WaitForChild("PlayerGui")
 	local h = F(sg, UDim2.new(0,240,1,0), UDim2.new(1,-248,0,0), Color3.new())
 	h.BackgroundTransparency = 1
 	local ul = Instance.new("UIListLayout", h)
@@ -123,7 +123,7 @@ function ui:CreateWindow(title, opts)
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name, gui.ResetOnSpawn, gui.DisplayOrder, gui.IgnoreGuiInset = "BRGui", false, 100, true
-	gui.Parent = gethui()
+	gui.Parent = (gethui and gethui()) or LP:WaitForChild("PlayerGui")
 
 	local win = F(gui, UDim2.new(0,W,0,H), UDim2.new(0.5,-W/2,0.5,-H/2), C.Win, "Win")
 	Stroke(win, C.Border)
