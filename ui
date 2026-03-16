@@ -327,8 +327,9 @@ function Tab:AddToggle(text, default, callback, col, bind)
         val and C.TextBright or C.CheckOff, "CB")
     Stroke(cb, C.CheckBorder, 1)
 
-    -- кнопка бинда справа
-    local BIND_W = 54
+    -- кнопка бинда справа (скрыта если bind не передан)
+    local BIND_W = bind ~= nil and 54 or 0
+
     local bindBox = F(f, UDim2.new(0,BIND_W,0,16),
         UDim2.new(1,-(BIND_W+2),0.5,-8), C.DropBG, "BindBox")
     Stroke(bindBox, C.DropBorder, 1)
@@ -337,6 +338,10 @@ function Tab:AddToggle(text, default, callback, col, bind)
         UDim2.new(1,0,1,0), UDim2.new(0,0,0,0),
         C.Bind, 10)
     bindL.TextXAlignment = Enum.TextXAlignment.Center
+
+    if bind == nil then
+        bindBox.Visible = false
+    end
 
     -- текст тогла
     local tl = L(f, text,
@@ -354,7 +359,7 @@ function Tab:AddToggle(text, default, callback, col, bind)
         if callback then callback(val) end
     end
 
-    -- хитбокс на весь рядок (кроме bindBox конечно же)
+    -- хитбокс на весь ряд (кроме bindBox)
     local btn = B(f, UDim2.new(1,-(BIND_W+4),1,0), UDim2.new(0,0,0,0))
     btn.ZIndex = 3
     btn.MouseButton1Click:Connect(doToggle)
@@ -366,6 +371,10 @@ function Tab:AddToggle(text, default, callback, col, bind)
     local bindBtn = B(f, UDim2.new(0,BIND_W,0,16),
         UDim2.new(1,-(BIND_W+2),0.5,-8))
     bindBtn.ZIndex = 4
+
+    if bind == nil then
+        bindBtn.Visible = false
+    end
 
     bindBtn.MouseButton1Click:Connect(function()
         if listening then return end
@@ -381,7 +390,6 @@ function Tab:AddToggle(text, default, callback, col, bind)
 
             if i.UserInputType == Enum.UserInputType.Keyboard then
                 if i.KeyCode == Enum.KeyCode.Escape then
-                    -- Escape = сбросить бинд
                     newKey = nil
                 else
                     newKey = i.KeyCode
@@ -393,7 +401,7 @@ function Tab:AddToggle(text, default, callback, col, bind)
             elseif i.UserInputType == Enum.UserInputType.MouseButton3 then
                 newKey = Enum.UserInputType.MouseButton3
             else
-                return -- остальное игнорим
+                return
             end
 
             listenConn:Disconnect(); listenConn = nil
@@ -406,7 +414,7 @@ function Tab:AddToggle(text, default, callback, col, bind)
         end)
     end)
 
-    -- hover на bindBo
+    -- hover на bindBox
     bindBtn.MouseEnter:Connect(function()
         if not listening then
             tw(bindBox, {BackgroundColor3 = Color3.fromRGB(38,38,38)}, 0.06)
@@ -420,7 +428,7 @@ function Tab:AddToggle(text, default, callback, col, bind)
         end
     end)
 
-    -- глобальный листен нажатий
+    -- глобальный листенер нажатий
     UserInputService.InputBegan:Connect(function(i, gp)
         if gp or listening then return end
         if i.UserInputType == Enum.UserInputType.Keyboard
