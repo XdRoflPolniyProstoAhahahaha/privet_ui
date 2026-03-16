@@ -300,50 +300,259 @@ function ui:CreateWindow(title, opts)
 			F(f, UDim2.new(1,0,0,1), UDim2.new(0,0,1,-1), C.Border)
 		end
 
-		function Tab:AddToggle(text, default, callback, col, bind)
-			local f   = row(col, 28)
-			local val = default or false
+function Tab:AddToggle(text, default, callback, col, bind)
+    local f   = row(col, 28)
+    local val = default or false
 
-			-- чекбокс — квадрат как в CS:GO чите
-			local cb = F(f, UDim2.new(0,13,0,13), UDim2.new(0,0,0.5,-6),
-				val and C.TextBright or C.CheckOff, "CB")
-			Stroke(cb, C.CheckBorder, 1)
+    local boundKey = bind or nil
 
-			-- текст
-			local bindW = bind and (#bind * 8 + 4) or 0
-			local tl = L(f, text,
-				UDim2.new(1,-(20 + bindW), 1, 0),
-				UDim2.new(0,18,0,0),
-				val and C.TextBright or C.Text,
-				13)
+    local function keyName(kc)
+        if not kc then return "NONE" end
+        if kc == Enum.UserInputType.MouseButton1 then return "LMB" end
+        if kc == Enum.UserInputType.MouseButton2 then return "RMB" end
+        if kc == Enum.UserInputType.MouseButton3 then return "MMB" end
+        local n = tostring(kc):gsub("Enum%.KeyCode%.", "")
+        local short = {
+            LeftShift="LSHFT", RightShift="RSHFT",
+            LeftControl="LCTRL", RightControl="RCTRL",
+            LeftAlt="LALT", RightAlt="RALT",
+            Backspace="BKSP", CapsLock="CAPS",
+            Return="ENTER", Space="SPC",
+        }
+        return short[n] or (n:len() > 6 and n:sub(1,5) or n)
+    end
 
-			-- бинд справа
-			if bind then
-				local bl = L(f, bind,
-					UDim2.new(0, bindW, 1, 0),
-					UDim2.new(1, -bindW, 0, 0),
-					C.Bind, 12)
-				bl.TextXAlignment = Enum.TextXAlignment.Right
-			end
+    -- чекбокс
+    local cb = F(f, UDim2.new(0,13,0,13), UDim2.new(0,0,0.5,-6),
+        val and C.TextBright or C.CheckOff, "CB")
+    Stroke(cb, C.CheckBorder, 1)
 
-			local btn = B(f, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0))
-			btn.ZIndex = 3
+    -- кнопка бинда справа
+    local BIND_W = 54
+    local bindBox = F(f, UDim2.new(0,BIND_W,0,16),
+        UDim2.new(1,-(BIND_W+2),0.5,-8), C.DropBG, "BindBox")
+    Stroke(bindBox, C.DropBorder, 1)
 
-			local function upd(v)
-				tw(cb, {BackgroundColor3 = v and C.TextBright or C.CheckOff}, 0.07)
-				tw(tl, {TextColor3 = v and C.TextBright or C.Text}, 0.07)
-			end
+    local bindL = L(bindBox, "["..keyName(boundKey).."]",
+        UDim2.new(1,0,1,0), UDim2.new(0,0,0,0),
+        C.Bind, 10)
+    bindL.TextXAlignment = Enum.TextXAlignment.Center
 
-			btn.MouseButton1Click:Connect(function()
-				val=not val; upd(val)
-				if callback then callback(val) end
-			end)
+    -- текст тогла
+    local tl = L(f, text,
+        UDim2.new(1,-(20 + BIND_W + 6), 1, 0),
+        UDim2.new(0,18,0,0),
+        val and C.TextBright or C.Text, 13)
 
-			return {
-				Set = function(_,v) val=v; upd(v); if callback then callback(v) end end,
-				Get = function(_) return val end,
-			}
-		end
+    local function upd(v)
+        tw(cb, {BackgroundColor3 = v and C.TextBright or C.CheckOff}, 0.07)
+        tw(tl, {TextColor3       = v and C.TextBright or C.Text},     0.07)
+    end
+
+    local function doToggle()
+        val = not val; upd(val)
+        if callback then callback(val) end
+    end
+
+    -- хитбокс на весь рядок (кроме bindBox конечно же)
+    local btn = B(f, UDim2.new(1,-(BIND_W+4),1,0), UDim2.new(0,0,0,0))
+    btn.ZIndex = 3
+    btn.MouseButton1Click:Connect(doToggle)
+
+    -- rebind логика
+    local listening  = false
+    local listenConn = nil
+
+    local bindBtn = B(f, UDim2.new(0,BIND_W,0,16),
+        UDim2.new(1,-(BIND_W+2),0.5,-8))
+    bindBtn.ZIndex = 4
+
+    bindBtn.MouseButton1Click:Connect(function()
+        if listening then return end
+        listening = true
+        tw(bindBox, {BackgroundColor3 = Color3.fromRGB(42,42,42)}, 0.06)
+        bindL.Text       = "[...]"
+        bindL.TextColor3 = C.TextBright
+
+        listenConn = UserInputService.InputBegan:Connect(function(i, gp)
+            if gp then return end
+
+            local newKey = nil
+
+            if i.UserInputType == Enum.UserInputType.Keyboard then
+                if i.KeyCode == Enum.KeyCode.Escape then
+                    -- Escape = сбросить бинд
+                    newKey = nil
+                else
+                    newKey = i.KeyCode
+                end
+            elseif i.UserInputType == Enum.UserInputType.MouseButton1 then
+                newKey = Enum.UserInputType.MouseButton1
+            elseif i.UserInputType == Enum.UserInputType.MouseButton2 then
+                newKey = Enum.UserInputType.MouseButton2
+            elseif i.UserInputType == Enum.UserInputType.MouseButton3 then
+                newKey = Enum.UserInputType.MouseButton3
+            else
+                return -- остальное игнорим
+            end
+
+            listenConn:Disconnect(); listenConn = nil
+            listening  = false
+            boundKey   = newKey
+
+            bindL.Text       = "["..keyName(boundKey).."]"
+            bindL.TextColor3 = C.Bind
+            tw(bindBox, {BackgroundColor3 = C.DropBG}, 0.06)
+        end)
+    end)
+
+    -- hover на bindBo
+    bindBtn.MouseEnter:Connect(function()
+        if not listening then
+            tw(bindBox, {BackgroundColor3 = Color3.fromRGB(38,38,38)}, 0.06)
+            tw(bindL,   {TextColor3 = C.Text}, 0.06)
+        end
+    end)
+    bindBtn.MouseLeave:Connect(function()
+        if not listening then
+            tw(bindBox, {BackgroundColor3 = C.DropBG}, 0.06)
+            tw(bindL,   {TextColor3 = C.Bind}, 0.06)
+        end
+    end)
+
+    -- глобальный листен нажатий
+    UserInputService.InputBegan:Connect(function(i, gp)
+        if gp or listening then return end
+        if i.UserInputType == Enum.UserInputType.Keyboard
+            and boundKey == i.KeyCode then
+            doToggle()
+        elseif i.UserInputType == Enum.UserInputType.MouseButton1
+            and boundKey == Enum.UserInputType.MouseButton1 then
+            doToggle()
+        elseif i.UserInputType == Enum.UserInputType.MouseButton2
+            and boundKey == Enum.UserInputType.MouseButton2 then
+            doToggle()
+        elseif i.UserInputType == Enum.UserInputType.MouseButton3
+            and boundKey == Enum.UserInputType.MouseButton3 then
+            doToggle()
+        end
+    end)
+
+    return {
+        Set     = function(_, v) val = v; upd(v); if callback then callback(v) end end,
+        Get     = function(_) return val end,
+        SetBind = function(_, kc) boundKey = kc; bindL.Text = "["..keyName(kc).."]" end,
+        GetBind = function(_) return boundKey end,
+    }
+end
+
+		function Tab:AddKeybind(text, default, callback, col)
+    local f        = row(col, 28)
+    local boundKey = default or nil
+
+    local function keyName(kc)
+        if not kc then return "NONE" end
+        if kc == Enum.UserInputType.MouseButton1 then return "LMB" end
+        if kc == Enum.UserInputType.MouseButton2 then return "RMB" end
+        if kc == Enum.UserInputType.MouseButton3 then return "MMB" end
+        local n = tostring(kc):gsub("Enum%.KeyCode%.", "")
+        local short = {
+            LeftShift="LSHFT", RightShift="RSHFT",
+            LeftControl="LCTRL", RightControl="RCTRL",
+            LeftAlt="LALT", RightAlt="RALT",
+            Backspace="BKSP", CapsLock="CAPS",
+            Return="ENTER", Space="SPC",
+        }
+        return short[n] or (n:len() > 6 and n:sub(1,5) or n)
+    end
+
+    -- текст слева
+    local tl = L(f, text,
+        UDim2.new(1,-60,1,0),
+        UDim2.new(0,0,0,0),
+        C.Text, 13)
+
+    -- кнопка бинда справа
+    local BIND_W = 54
+    local bindBox = F(f, UDim2.new(0,BIND_W,0,16),
+        UDim2.new(1,-(BIND_W+2),0.5,-8), C.DropBG, "BindBox")
+    Stroke(bindBox, C.DropBorder, 1)
+
+    local bindL = L(bindBox, "["..keyName(boundKey).."]",
+        UDim2.new(1,0,1,0), UDim2.new(0,0,0,0),
+        C.Bind, 10)
+    bindL.TextXAlignment = Enum.TextXAlignment.Center
+
+    -- rebind логика
+    local listening  = false
+    local listenConn = nil
+
+    local bindBtn = B(f, UDim2.new(0,BIND_W,0,16),
+        UDim2.new(1,-(BIND_W+2),0.5,-8))
+    bindBtn.ZIndex = 4
+
+    bindBtn.MouseButton1Click:Connect(function()
+        if listening then return end
+        listening = true
+        tw(bindBox, {BackgroundColor3 = Color3.fromRGB(42,42,42)}, 0.06)
+        bindL.Text       = "[...]"
+        bindL.TextColor3 = C.TextBright
+
+        listenConn = UserInputService.InputBegan:Connect(function(i, gp)
+            if gp then return end
+
+            local newKey = nil
+
+            if i.UserInputType == Enum.UserInputType.Keyboard then
+                if i.KeyCode == Enum.KeyCode.Escape then
+                    newKey = nil
+                else
+                    newKey = i.KeyCode
+                end
+            elseif i.UserInputType == Enum.UserInputType.MouseButton1 then
+                newKey = Enum.UserInputType.MouseButton1
+            elseif i.UserInputType == Enum.UserInputType.MouseButton2 then
+                newKey = Enum.UserInputType.MouseButton2
+            elseif i.UserInputType == Enum.UserInputType.MouseButton3 then
+                newKey = Enum.UserInputType.MouseButton3
+            else
+                return
+            end
+
+            listenConn:Disconnect(); listenConn = nil
+            listening  = false
+            boundKey   = newKey
+
+            bindL.Text       = "["..keyName(boundKey).."]"
+            bindL.TextColor3 = C.Bind
+            tw(bindBox, {BackgroundColor3 = C.DropBG}, 0.06)
+
+            if callback then callback(boundKey) end
+        end)
+    end)
+
+    -- hover
+    bindBtn.MouseEnter:Connect(function()
+        if not listening then
+            tw(bindBox, {BackgroundColor3 = Color3.fromRGB(38,38,38)}, 0.06)
+            tw(bindL,   {TextColor3 = C.Text}, 0.06)
+        end
+    end)
+    bindBtn.MouseLeave:Connect(function()
+        if not listening then
+            tw(bindBox, {BackgroundColor3 = C.DropBG}, 0.06)
+            tw(bindL,   {TextColor3 = C.Bind}, 0.06)
+        end
+    end)
+
+    return {
+        Set     = function(_, kc)
+            boundKey   = kc
+            bindL.Text = "["..keyName(kc).."]"
+        end,
+        Get     = function(_) return boundKey end,
+    }
+end
 
 		function Tab:AddSlider(text, opts, callback, col)
 			opts       = opts or {}
